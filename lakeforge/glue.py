@@ -127,6 +127,27 @@ def add_partitions_ddl(
     return f"ALTER TABLE {table_ref} ADD {guard}" + "\n".join(clauses) + ";"
 
 
+def drop_partition_ddl(
+    table: str,
+    partition: Partition,
+    *,
+    database: str | None = None,
+    if_exists: bool = True,
+) -> str:
+    """Build an ``ALTER TABLE ... DROP PARTITION`` statement.
+
+    Useful for retiring or rewriting a partition; pair with
+    :func:`add_partition_ddl` to atomically re-point a partition's location.
+    """
+    spec = ", ".join(
+        f"{_validate_identifier(col.name, 'partition column name')}="
+        f"{_sql_literal(col, partition.values[col.name])}"
+        for col in partition.schema.columns
+    )
+    guard = "IF EXISTS " if if_exists else ""
+    return f"ALTER TABLE {_qualified(table, database)} DROP {guard}PARTITION ({spec});"
+
+
 def create_table_ddl(
     table: str,
     columns: Mapping[str, str],
@@ -245,6 +266,7 @@ def projection_properties(
 __all__ = [
     "add_partition_ddl",
     "add_partitions_ddl",
+    "drop_partition_ddl",
     "create_table_ddl",
     "msck_repair",
     "projection_properties",
