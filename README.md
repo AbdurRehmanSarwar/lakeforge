@@ -215,6 +215,7 @@ from lakeforge.glue import (
     create_table_ddl,
     add_partition_ddl,
     add_partitions_ddl,
+    drop_partition_ddl,
     msck_repair,
     projection_properties,
 )
@@ -256,6 +257,10 @@ add_partitions_ddl("events", ps, "s3://my-bucket/events")
 # Let Athena re-discover existing partitions from the catalog.
 msck_repair("events", database="analytics")
 # 'MSCK REPAIR TABLE analytics.events;'
+
+# Retire a partition (pair with add_partition_ddl to re-point its location).
+drop_partition_ddl("events", p, database="analytics")
+# "ALTER TABLE analytics.events DROP IF EXISTS PARTITION (year=2024, month=3, region='us');"
 ```
 
 For large, regular layouts, **partition projection** lets Athena compute
@@ -293,6 +298,38 @@ TBLPROPERTIES ('projection.enabled'='true', 'storage.location.template'='s3://my
 
 Integer columns project as `type=integer` over the given `ranges`, date/timestamp
 columns as `type=date`, and string columns as `type=enum` from `enum_values`.
+
+## Generating partitions (backfills)
+
+When you backfill a date-partitioned table or register many partitions at once,
+`lakeforge.generate` enumerates the partitions for you. `date_range` produces the
+dates; `partition_grid` builds the cartesian product of partitions from per-column
+value lists.
+
+```python
+from datetime import date
+from lakeforge import schema, date_range, partition_grid
+from lakeforge.glue import add_partitions_ddl
+
+sch = schema(("year", "int"), ("month", "int"), "region")
+
+# Every month-start from Jan 2024 through Mar 2024.
+months = date_range(date(2024, 1, 1), date(2024, 3, 1), step="month")
+# [date(2024, 1, 1), date(2024, 2, 1), date(2024, 3, 1)]
+
+# Build the full grid of partitions to backfill, then emit one ADD statement.
+parts = partition_grid(
+    sch,
+    year=[2024],
+    month=[d.month for d in months],
+    region=["us", "eu"],
+)
+print(add_partitions_ddl("events", parts, "s3://my-bucket/events"))
+```
+
+`date_range` supports `"day"`, `"month"`, and `"year"` steps (for month/year the
+day-of-month is anchored on the start date and clamped to each month). `partition_grid`
+emits partitions in schema-column order and validates that every column is supplied.
 
 ## Manifests
 
