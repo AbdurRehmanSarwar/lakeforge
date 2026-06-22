@@ -27,6 +27,7 @@ from .errors import (
     PredicateError,
     SchemaError,
 )
+from .generate import date_range, partition_grid
 from .manifest import Manifest, PartitionFiles, build_manifest
 from .partition import Partition, build_partitions
 from .predicate import (
@@ -59,6 +60,9 @@ __all__ = [
     # partitions
     "Partition",
     "build_partitions",
+    # generation
+    "date_range",
+    "partition_grid",
     # predicates
     "Predicate",
     "Eq",
