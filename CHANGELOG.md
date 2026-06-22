@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-22
+
+### Added
+- `glue.drop_partition_ddl` to build `ALTER TABLE ... DROP PARTITION` statements
+  (pairs with `add_partition_ddl` to re-point a partition's location).
+- `lakeforge.generate` module for backfills and batch registration:
+  `date_range` (inclusive ranges with `day`/`month`/`year` steps, anchored and
+  clamped day-of-month) and `partition_grid` (cartesian product of partitions
+  from per-column value lists, emitted in schema-column order).
+
 ## [0.1.0] - 2026-06-17
 
 Initial release of **lakeforge**, a toolkit for Hive-partitioned data lakes on
